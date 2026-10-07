@@ -7,11 +7,19 @@ export interface Testimonial {
   avatarLetter: string;
 }
 
+export interface StageDetail {
+  id: "design" | "during" | "after";
+  title: string;
+  description: string;
+  badge: string;
+  images: string[];
+}
+
 export interface Project {
   id: string;
   title: string;
   category: string;
-  client: string;
+  client?: string;
   location: string;
   status: "Completed" | "Structure Stage" | "Finishing Stage";
   builtUpArea: string;
@@ -27,6 +35,11 @@ export interface Project {
     text: string;
     author: string;
   };
+  stages?: {
+    design: StageDetail;
+    during: StageDetail;
+    after: StageDetail;
+  };
 }
 
 export interface ServiceItem {
@@ -41,21 +54,16 @@ export interface ServiceItem {
 export interface ConstructionPackage {
   id: string;
   name: string;
+  nameNe: string;
+  badge: string;
+  badgeNe: string;
   tagline: string;
+  taglineNe: string;
   highlighted: boolean;
   rateLabel: string;
-  materials: {
-    steel: string;
-    cement: string;
-    bricks: string;
-    sandAggr: string;
-  };
-  finishes: {
-    flooring: string;
-    doorsWindows: string;
-    plumbing: string;
-    electrical: string;
-    painting: string;
-  };
-  engineeringAssurance: string[];
+  rateLabelNe: string;
+  rateSubtext: string;
+  rateSubtextNe: string;
+  highlights: string[];
+  highlightsNe: string[];
 }

@@ -1,6 +1,6 @@
 import React from "react";
 import { Award, ArrowRight, ShieldCheck, CheckCircle2, Layers } from "lucide-react";
-import heroBuilding from "../assets/images/hero_nepal_building_1784625244345.jpg";
+import kavresthaliExt3d from "../assets/images/kavresthali_ext_3d_1785048964141.jpg";
 import { useLanguage } from "../context/LanguageContext";
 
 interface HeroProps {
@@ -93,7 +93,7 @@ export default function Hero({ onContactClick }: HeroProps) {
               {/* Main Image Container */}
               <div className="relative bg-neutral-900 rounded-2xl border border-neutral-800 overflow-hidden shadow-2xl aspect-[4/3] sm:aspect-[16/10] lg:aspect-[4/3]">
                 <img
-                  src={heroBuilding}
+                  src={kavresthaliExt3d}
                   alt="Modern premium residence designed and built in Kathmandu Valley, Nepal"
                   className="w-full h-full object-cover grayscale-[15%] group-hover:grayscale-0 transition-all duration-700 hover:scale-103"
                   referrerPolicy="no-referrer"

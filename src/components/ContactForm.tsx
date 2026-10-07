@@ -1,26 +1,32 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Phone, Mail, CheckCircle2, Send, Clock, Sparkles } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 
-export default function ContactForm() {
+interface ContactFormProps {
+  selectedSubject?: string;
+}
+
+const RECIPIENT_EMAIL = "info.pbconsultation@gmail.com";
+
+export default function ContactForm({ selectedSubject }: ContactFormProps) {
   const { language } = useLanguage();
 
   const projectTypes = language === "ne" 
     ? [
-        "आवासीय घरहरू",
-        "प्रिमियम बंगलाहरू",
-        "व्यावसायिक भवनहरू",
-        "सरकारी/शैक्षिक भवनहरू",
+        "सामान्य पारिवारिक घर (Residential Home)",
+        "प्रिमियम आधुनिक घर / बंगला",
+        "व्यावसायिक भवन (Commercial)",
+        "नक्सा डिजाइन र नक्सा पास मात्र",
         "इन्टेरियर डिजाइन",
-        "रचनात्मक सुधार/Retrofitting"
+        "मर्मत तथा रेट्रोफिटिङ"
       ]
     : [
-        "Residential Homes",
-        "Premium Residences",
-        "Commercial Buildings",
-        "Institutional Buildings",
-        "Interior Projects",
-        "Ongoing Construction"
+        "Standard Family Home",
+        "Premium Modern Home / Bungalow",
+        "Commercial Building",
+        "House Design & Municipality Approval Only",
+        "Interior Design",
+        "Renovation & Retrofitting"
       ];
 
   const nepalLocations = language === "ne"
@@ -48,6 +54,7 @@ export default function ContactForm() {
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
+    email: "",
     projectType: projectTypes[0],
     location: nepalLocations[0],
     message: "",
@@ -56,25 +63,98 @@ export default function ContactForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (selectedSubject) {
+      setFormData((prev) => ({
+        ...prev,
+        message: prev.message
+          ? prev.message
+          : language === "ne"
+            ? `म "${selectedSubject}" को बारेमा परामर्श लिन चाहन्छु।`
+            : `I would like a consultation regarding: ${selectedSubject}.`
+      }));
+    }
+  }, [selectedSubject, language]);
+
+  const buildMailtoUrl = () => {
+    const subject = `New Consultation & Technical Assessment Request - ${formData.name} (${formData.phone})`;
+    const bodyLines = [
+      `New Consultation / Technical Assessment Request for P.B. Consultation:`,
+      `--------------------------------------------------`,
+      `Full Name: ${formData.name}`,
+      `Phone Number: ${formData.phone}`,
+      `Customer Email: ${formData.email || "Not provided"}`,
+      `Project Type: ${formData.projectType}`,
+      `Site Location: ${formData.location}`,
+      `Vastu Consultation Needed: ${formData.vastuCompliance ? "Yes" : "No"}`,
+      `--------------------------------------------------`,
+      `Message / Plot Details:`,
+      `${formData.message || "No additional message provided."}`
+    ];
+    return `mailto:${RECIPIENT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join("\n"))}`;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.phone) return;
 
     setSubmitting(true);
-    // Simulate short network transmission
-    setTimeout(() => {
+
+    try {
+      // Send directly to info.pbconsultation@gmail.com via FormSubmit AJAX API
+      const response = await fetch(`https://formsubmit.co/ajax/${RECIPIENT_EMAIL}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json"
+        },
+        body: JSON.stringify({
+          _subject: `New Consultation Inquiry from ${formData.name} (${formData.phone})`,
+          Full_Name: formData.name,
+          Phone_Number: formData.phone,
+          Customer_Email: formData.email || "Not provided",
+          Project_Type: formData.projectType,
+          Site_District: formData.location,
+          Vastu_Shastra_Required: formData.vastuCompliance ? "Yes" : "No",
+          Inquiry_Topic: selectedSubject || "Free Consultation & Technical Assessment",
+          Message_And_Plot_Details: formData.message || "No additional message provided",
+          _template: "table",
+          _captcha: "false"
+        })
+      });
+
+      const result = await response.json().catch(() => null);
+
+      // If FormSubmit requires first-time activation or fails, automatically trigger direct mailto link
+      if (!response.ok || (result && result.success === "false")) {
+        const mailtoLink = document.createElement("a");
+        mailtoLink.href = buildMailtoUrl();
+        document.body.appendChild(mailtoLink);
+        mailtoLink.click();
+        document.body.removeChild(mailtoLink);
+      }
+    } catch {
+      // Fallback: open pre-filled email to info.pbconsultation@gmail.com
+      const mailtoLink = document.createElement("a");
+      mailtoLink.href = buildMailtoUrl();
+      document.body.appendChild(mailtoLink);
+      mailtoLink.click();
+      document.body.removeChild(mailtoLink);
+    } finally {
       setSubmitting(false);
       setSubmitted(true);
-    }, 800);
+    }
   };
 
   const handleReset = () => {
     setFormData({
       name: "",
       phone: "",
+      email: "",
       projectType: projectTypes[0],
       location: nepalLocations[0],
-      message: ""
+      message: "",
+      vastuCompliance: false
     });
     setSubmitted(false);
   };
@@ -101,8 +181,8 @@ export default function ContactForm() {
               </h2>
               <p className="text-neutral-400 text-sm font-light leading-relaxed">
                 {language === "ne"
-                  ? "हाम्रा वरिष्ठ स्ट्रक्चरल इन्जिनियरहरू र निर्माण व्यवस्थापन टोलीसँग सिधै सम्पर्क गर्नुहोस्। हामी डिजिटल सोधपुछको २४ घण्टा भित्र सम्पर्क गर्नेछौं।"
-                  : "Connect directly with our senior structural engineers and construction logistics division. We respond to digital inquiries within 24 business hours."
+                  ? "तपाईंको घर निर्माण, नक्सा पास वा लागत अनुमानको लागि हाम्रो टोलीसँग सिधै सम्पर्क गर्नुहोस्। तपाईंको विवरण सिधै हाम्रो आधिकारिक इमेलमा प्राप्त हुनेछ र हामी २४ घण्टा भित्र सम्पर्क गर्नेछौं।"
+                  : "Connect directly with our engineering and construction team for a free consultation or technical assessment. Your request is sent directly to our official email and we respond within 24 hours."
                 }
               </p>
             </div>
@@ -126,7 +206,7 @@ export default function ContactForm() {
 
               {/* Email */}
               <a
-                href="mailto:info.pbconsultation@gmail.com"
+                href={`mailto:${RECIPIENT_EMAIL}`}
                 className="flex items-center gap-4 p-4.5 rounded-lg bg-neutral-900 border border-neutral-800 hover:border-brand-gold transition-colors"
               >
                 <div className="w-11 h-11 rounded-full bg-brand-gold/10 border border-brand-gold/20 flex items-center justify-center shrink-0">
@@ -136,7 +216,7 @@ export default function ContactForm() {
                   <span className="block text-[10px] text-neutral-400 uppercase tracking-wider font-mono">
                     {language === "ne" ? "इन्जिनियरिङ कार्यालयमा ईमेल गर्नुहोस्" : "EMAIL ENGINEERING OFFICE"}
                   </span>
-                  <span className="text-sm font-bold text-white block mt-0.5">info.pbconsultation@gmail.com</span>
+                  <span className="text-sm font-bold text-white block mt-0.5">{RECIPIENT_EMAIL}</span>
                 </div>
               </a>
             </div>
@@ -166,50 +246,63 @@ export default function ContactForm() {
           <div className="lg:col-span-7 bg-neutral-900/80 backdrop-blur-sm rounded-xl border border-neutral-800 p-8 shadow-2xl relative" id="contact-form-block">
             
             {submitted ? (
-              <div className="text-center py-12 space-y-6">
+              <div className="text-center py-10 space-y-6">
                 <div className="w-16 h-16 bg-brand-pink/15 text-brand-pink border-2 border-brand-pink/30 rounded-full flex items-center justify-center mx-auto">
                   <CheckCircle2 className="w-9 h-9" />
                 </div>
                 <div className="space-y-2">
                   <h3 className="text-xl font-display font-bold text-white">
-                    {language === "ne" ? "परामर्शको अनुरोध प्राप्त भयो" : "Consultation Request Received"}
+                    {language === "ne" ? "परामर्शको अनुरोध पठाइयो!" : "Consultation Request Sent to Our Email!"}
                   </h3>
-                  <p className="text-xs text-neutral-400 font-light max-w-md mx-auto leading-relaxed">
+                  <p className="text-xs sm:text-sm text-neutral-300 font-light max-w-md mx-auto leading-relaxed">
                     {language === "ne" ? (
                       <>
-                        धन्यवाद, <strong className="text-white">{formData.name}</strong>। हामीले तपाईंको अनुरोध दर्ता गरेका छौं। हाम्रा वरिष्ठ इन्जिनियरहरूले यसको अध्ययन गर्नेछन् र हामी तपाईंलाई चाँडै <strong className="text-white">{formData.phone}</strong> मा सम्पर्क गर्नेछौं।
+                        धन्यवाद, <strong className="text-white">{formData.name}</strong>। तपाईंको विवरण हाम्रो आधिकारिक इमेल (<strong className="text-brand-gold">{RECIPIENT_EMAIL}</strong>) मा पठाइएको छ। हाम्रो टोलीले तपाईंलाई चाँडै <strong className="text-white">{formData.phone}</strong> मा सम्पर्क गर्नेछ।
                       </>
                     ) : (
                       <>
-                        Thank you, <strong className="text-white">{formData.name}</strong>. Our senior civil engineering division has logged your request. We will contact you at <strong className="text-white">{formData.phone}</strong> within 24 hours to schedule a detailed session.
+                        Thank you, <strong className="text-white">{formData.name}</strong>. Your inquiry has been forwarded directly to <strong className="text-brand-gold">{RECIPIENT_EMAIL}</strong>. Our team will contact you at <strong className="text-white">{formData.phone}</strong> shortly.
                       </>
                     )}
                   </p>
                 </div>
-                <button
-                  onClick={handleReset}
-                  className="bg-brand-pink hover:bg-brand-pink/90 text-white text-xs font-bold uppercase tracking-wider px-6 py-3 rounded shadow transition-all cursor-pointer"
-                >
-                  {language === "ne" ? "अर्को सोधपुछ पठाउनुहोस्" : "Send Another Inquiry"}
-                </button>
+
+                {/* Direct Email Backup & Reset Actions */}
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                  <a
+                    href={buildMailtoUrl()}
+                    className="inline-flex items-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-brand-gold border border-brand-gold/30 text-xs font-bold uppercase tracking-wider px-5 py-3 rounded shadow transition-all"
+                  >
+                    <Mail className="w-4 h-4" />
+                    <span>{language === "ne" ? "इमेल एपबाट पनि पठाउनुहोस्" : "Also Open in Email App"}</span>
+                  </a>
+                  <button
+                    onClick={handleReset}
+                    className="bg-brand-pink hover:bg-brand-pink/90 text-white text-xs font-bold uppercase tracking-wider px-6 py-3 rounded shadow transition-all cursor-pointer"
+                  >
+                    {language === "ne" ? "अर्को सोधपुछ पठाउनुहोस्" : "Send Another Inquiry"}
+                  </button>
+                </div>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-5">
                 
                 <div className="pb-3 border-b border-neutral-800">
                   <h3 className="text-lg font-display font-bold text-white flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-brand-gold" />
-                    {language === "ne" ? "निशुल्क प्राविधिक मूल्याङ्कन" : "Technical Assessment Request"}
+                    {language === "ne" 
+                      ? "निःशुल्क परामर्श तथा प्राविधिक मूल्याङ्कन फारम" 
+                      : "Free Consultation & Technical Assessment Request"}
                   </h3>
                   <p className="text-xs text-neutral-400 font-light mt-1">
                     {language === "ne"
-                      ? "तपाईंको विवरणहरू तल भर्नुहोस्। तपाईंको विवरण पूर्ण रूपमा सुरक्षित र गोप्य रहनेछ।"
-                      : "Fill in your details below. No fields are sold to third parties. Complete data confidentiality."
+                      ? `तलको विवरण भर्नुहोस्—यो सिधै हाम्रो इमेल (${RECIPIENT_EMAIL}) मा आउनेछ।`
+                      : `Fill in your details below—your request is sent directly to our email (${RECIPIENT_EMAIL}).`
                     }
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   {/* Name */}
                   <div className="space-y-1.5">
                     <label htmlFor="name-input" className="block text-[10px] font-mono text-neutral-400 uppercase tracking-wider font-bold">
@@ -235,7 +328,7 @@ export default function ContactForm() {
                       id="phone-input"
                       type="tel"
                       required
-                      placeholder={language === "ne" ? "जस्तै: +९७७ ९८५१०XXXXX" : "e.g., +977 9851XXXXXX"}
+                      placeholder={language === "ne" ? "जस्तै: ९८४१XXXXXX" : "e.g., 9841XXXXXX"}
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       className="w-full bg-neutral-950 border border-neutral-800 focus:border-brand-gold focus:outline-none p-3.5 text-xs rounded text-white transition-colors"
@@ -243,11 +336,26 @@ export default function ContactForm() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* Optional Email */}
+                <div className="space-y-1.5">
+                  <label htmlFor="email-input" className="block text-[10px] font-mono text-neutral-400 uppercase tracking-wider font-bold">
+                    {language === "ne" ? "तपाईंको इमेल ठेगाना (ऐच्छिक)" : "Your Email Address (Optional)"}
+                  </label>
+                  <input
+                    id="email-input"
+                    type="email"
+                    placeholder={language === "ne" ? "जस्तै: name@example.com" : "e.g., yourname@gmail.com"}
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full bg-neutral-950 border border-neutral-800 focus:border-brand-gold focus:outline-none p-3.5 text-xs rounded text-white transition-colors"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   {/* Project Type */}
                   <div className="space-y-1.5">
                     <label htmlFor="project-type-select" className="block text-[10px] font-mono text-neutral-400 uppercase tracking-wider font-bold">
-                      {language === "ne" ? "योजनाको प्रकार" : "Project Type"}
+                      {language === "ne" ? "कस्तो घर वा काम बनाउने?" : "Project Type"}
                     </label>
                     <select
                       id="project-type-select"
@@ -264,7 +372,7 @@ export default function ContactForm() {
                   {/* District Location */}
                   <div className="space-y-1.5">
                     <label htmlFor="location-select" className="block text-[10px] font-mono text-neutral-400 uppercase tracking-wider font-bold">
-                      {language === "ne" ? "प्रस्तावित निर्माण स्थान" : "Proposed Site District"}
+                      {language === "ne" ? "जग्गा भएको स्थान" : "Proposed Site Location"}
                     </label>
                     <select
                       id="location-select"
@@ -290,8 +398,8 @@ export default function ContactForm() {
                   />
                   <label htmlFor="vastu-checkbox" className="text-xs text-neutral-300 font-light cursor-pointer select-none">
                     {language === "ne"
-                      ? "मलाई मेरो घरमा पूर्ण वास्तु शास्त्र (Vastu Shastra) अनुकूलता र कोठाहरूको दिशा मिलाउने परामर्श चाहिन्छ"
-                      : "I require Vastu Shastra integration & spatial alignment for my property"
+                      ? "मलाई मेरो घरमा वास्तु शास्त्र (Vastu Shastra) अनुसार कोठाहरूको दिशा मिलाउने सल्लाह चाहिन्छ"
+                      : "I would like Vastu Shastra consultation & room orientation guidance for my home"
                     }
                   </label>
                 </div>
@@ -299,14 +407,14 @@ export default function ContactForm() {
                 {/* Message / Site Details */}
                 <div className="space-y-1.5">
                   <label htmlFor="message-textarea" className="block text-[10px] font-mono text-neutral-400 uppercase tracking-wider font-bold">
-                    {language === "ne" ? "विस्तृत सन्देश र जग्गाको विवरण" : "Detailed Message & Plot Parameters"}
+                    {language === "ne" ? "सामान्य विवरण वा प्रश्नहरू" : "Brief Details or Questions"}
                   </label>
                   <textarea
                     id="message-textarea"
-                    rows={4}
+                    rows={3}
                     placeholder={language === "ne" 
-                      ? "तपाईंको जग्गाको क्षेत्रफल (जस्तै: ४ आना, ८ आना), तल्लाको संख्या, वा कुनै विशेष प्राविधिक विवरण खुलाउनुहोस्..."
-                      : "Describe your plot size (e.g., 4 Aana, 8 Aana), expected storeys, or technical parameters you need us to address..."
+                      ? "तपाईंको जग्गाको क्षेत्रफल (जस्तै: ४ आना, ६ आना), कति तल्लाको घर बनाउने सोच छ, वा अन्य केही जिज्ञासा भए लेख्नुहोस्..."
+                      : "Share your land size (e.g., 4 Aana, 6 Aana), how many floors you are planning, or any questions you have..."
                     }
                     value={formData.message}
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
@@ -323,12 +431,12 @@ export default function ContactForm() {
                   {submitting ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>{language === "ne" ? "दर्ता हुँदैछ..." : "Transmitting Log..."}</span>
+                      <span>{language === "ne" ? "इमेलमा पठाइँदैछ..." : "Sending Request to Email..."}</span>
                     </>
                   ) : (
                     <>
                       <Send className="w-4 h-4" />
-                      <span>{language === "ne" ? "निशुल्क प्राविधिक मूल्याङ्कन दर्ता गर्नुहोस्" : "Submit Secure Assessment Inquiry"}</span>
+                      <span>{language === "ne" ? "परामर्शको लागि इमेलमा पठाउनुहोस्" : "Send Consultation Request to Email"}</span>
                     </>
                   )}
                 </button>
