@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Phone, Mail, CheckCircle2, Send, Clock, Sparkles } from "lucide-react";
+import { Phone, Mail, CheckCircle2, Send, Clock, Sparkles, X } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 
 interface ContactFormProps {
@@ -62,6 +62,7 @@ export default function ContactForm({ selectedSubject }: ContactFormProps) {
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
     if (selectedSubject) {
@@ -75,6 +76,14 @@ export default function ContactForm({ selectedSubject }: ContactFormProps) {
       }));
     }
   }, [selectedSubject, language]);
+
+  useEffect(() => {
+    if (!showToast) return;
+    const timer = setTimeout(() => {
+      setShowToast(false);
+    }, 6500);
+    return () => clearTimeout(timer);
+  }, [showToast]);
 
   const buildMailtoUrl = () => {
     const subject = `New Consultation & Technical Assessment Request - ${formData.name} (${formData.phone})`;
@@ -143,6 +152,7 @@ export default function ContactForm({ selectedSubject }: ContactFormProps) {
     } finally {
       setSubmitting(false);
       setSubmitted(true);
+      setShowToast(true);
     }
   };
 
@@ -157,10 +167,41 @@ export default function ContactForm({ selectedSubject }: ContactFormProps) {
       vastuCompliance: false
     });
     setSubmitted(false);
+    setShowToast(false);
   };
 
   return (
     <section className="py-12 bg-[#121214] text-white relative overflow-hidden" id="contact">
+      {/* Floating Toast Notification */}
+      {showToast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-6 right-6 z-50 max-w-sm w-[calc(100%-3rem)] bg-neutral-900 border-2 border-brand-gold text-white p-4 rounded-xl shadow-2xl flex items-start gap-3.5 transition-all duration-300"
+        >
+          <div className="w-9 h-9 rounded-full bg-brand-gold/20 border border-brand-gold/40 flex items-center justify-center shrink-0 mt-0.5">
+            <CheckCircle2 className="w-5 h-5 text-brand-gold" />
+          </div>
+          <div className="flex-1 text-left">
+            <h4 className="text-xs sm:text-sm font-display font-bold text-white">
+              {language === "ne" ? "तपाईंको सोधपुछ प्राप्त भयो!" : "Enquiry Received Successfully!"}
+            </h4>
+            <p className="text-xs text-neutral-300 font-light mt-1 leading-relaxed">
+              {language === "ne"
+                ? `धन्यवाद ${formData.name}, तपाईंको विवरण हाम्रो इमेलमा पठाइएको छ। हामी चाँडै सम्पर्क गर्नेछौं।`
+                : `Thank you ${formData.name}, your details have been sent to our team. We will contact you shortly.`}
+            </p>
+          </div>
+          <button
+            onClick={() => setShowToast(false)}
+            aria-label="Close notification"
+            className="text-neutral-400 hover:text-white p-1 rounded transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Decorative Blueprint Backdrop */}
       <div className="absolute inset-0 opacity-5 pointer-events-none" style={{
         backgroundImage: "linear-gradient(rgba(197, 168, 80, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(197, 168, 80, 0.1) 1px, transparent 1px)",
@@ -246,13 +287,16 @@ export default function ContactForm({ selectedSubject }: ContactFormProps) {
           <div className="lg:col-span-7 bg-neutral-900/80 backdrop-blur-sm rounded-xl border border-neutral-800 p-8 shadow-2xl relative" id="contact-form-block">
             
             {submitted ? (
-              <div className="text-center py-10 space-y-6">
-                <div className="w-16 h-16 bg-brand-pink/15 text-brand-pink border-2 border-brand-pink/30 rounded-full flex items-center justify-center mx-auto">
+              <div className="text-center py-8 space-y-6">
+                <div className="w-16 h-16 bg-brand-gold/15 text-brand-gold border-2 border-brand-gold/40 rounded-full flex items-center justify-center mx-auto">
                   <CheckCircle2 className="w-9 h-9" />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-xl font-display font-bold text-white">
-                    {language === "ne" ? "परामर्शको अनुरोध पठाइयो!" : "Consultation Request Sent to Our Email!"}
+                  <span className="inline-block text-[10px] font-mono font-bold uppercase tracking-widest text-brand-gold bg-brand-gold/10 px-3 py-1 rounded-full">
+                    {language === "ne" ? "सफलतापूर्वक दर्ता भयो" : "ENQUIRY CONFIRMED"}
+                  </span>
+                  <h3 className="text-xl sm:text-2xl font-display font-bold text-white">
+                    {language === "ne" ? "तपाईंको परामर्श अनुरोध प्राप्त भयो!" : "We Have Received Your Enquiry!"}
                   </h3>
                   <p className="text-xs sm:text-sm text-neutral-300 font-light max-w-md mx-auto leading-relaxed">
                     {language === "ne" ? (
@@ -261,10 +305,30 @@ export default function ContactForm({ selectedSubject }: ContactFormProps) {
                       </>
                     ) : (
                       <>
-                        Thank you, <strong className="text-white">{formData.name}</strong>. Your inquiry has been forwarded directly to <strong className="text-brand-gold">{RECIPIENT_EMAIL}</strong>. Our team will contact you at <strong className="text-white">{formData.phone}</strong> shortly.
+                        Thank you, <strong className="text-white">{formData.name}</strong>. Your inquiry has been forwarded directly to <strong className="text-brand-gold">{RECIPIENT_EMAIL}</strong>. Our team will contact you at <strong className="text-white">{formData.phone}</strong> within 24 hours.
                       </>
                     )}
                   </p>
+                </div>
+
+                {/* Submitted Summary Box */}
+                <div className="max-w-md mx-auto bg-neutral-950/80 border border-neutral-800 rounded-lg p-4 text-left text-xs space-y-1.5 text-neutral-300">
+                  <div className="flex justify-between">
+                    <span className="text-neutral-500">{language === "ne" ? "नाम:" : "Name:"}</span>
+                    <span className="font-semibold text-white">{formData.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-500">{language === "ne" ? "फोन:" : "Phone:"}</span>
+                    <span className="font-semibold text-white">{formData.phone}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-500">{language === "ne" ? "प्रकार:" : "Project:"}</span>
+                    <span className="text-neutral-200">{formData.projectType}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-500">{language === "ne" ? "स्थान:" : "Location:"}</span>
+                    <span className="text-neutral-200">{formData.location}</span>
+                  </div>
                 </div>
 
                 {/* Direct Email Backup & Reset Actions */}

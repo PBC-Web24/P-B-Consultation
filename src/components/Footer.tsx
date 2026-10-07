@@ -106,17 +106,23 @@ export default function Footer() {
               <span className="text-[10px] font-mono text-brand-gold font-bold uppercase tracking-wider block">
                 {language === "ne" ? "काठमाडौं उपत्यका (मुख्य कार्यालय)" : "KATHMANDU VALLEY (HEAD OFFICE)"}
               </span>
-              <div className="flex items-start gap-3.5 font-light text-neutral-400">
+              <a
+                href="https://www.google.com/maps/search/?api=1&query=27.724837987974247,85.29680444588946"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-start gap-3.5 font-light text-neutral-400 hover:text-white transition-colors group"
+              >
                 <span className="text-brand-pink shrink-0 mt-0.5">📍</span>
                 <p className="leading-relaxed">
+                  <strong className="text-white group-hover:text-brand-gold transition-colors">P.B. Consultation Pvt. Ltd.</strong><br />
                   {language === "ne" ? "काठमाडौं-१६, वनस्थली, नेपाल" : "Kathmandu-16, Banasthali, Nepal"}<br />
-                  <span className="text-[10px] text-neutral-600 block mt-0.5">
+                  <span className="text-[10px] text-brand-gold underline block mt-0.5">
                     {language === "ne" 
-                      ? "इन्जिनियरिङ तथा निर्माण शाखा" 
-                      : "Engineering & Construction Wing"}
+                      ? "Google Maps मा मुख्य कार्यालय हेर्नुहोस् →" 
+                      : "View Main Office on Google Maps →"}
                   </span>
                 </p>
-              </div>
+              </a>
               <div className="flex items-center gap-3.5 font-light text-neutral-400">
                 <span className="text-brand-pink shrink-0">📞</span>
                 <span>{language === "ne" ? "फोन: +९७७ ९८४१०८३०८४" : "Phone: +977 9841083084"}</span>

@@ -10,6 +10,7 @@ import FeaturedProjects from "./components/FeaturedProjects";
 import Packages from "./components/Packages";
 import ContactForm from "./components/ContactForm";
 import Footer from "./components/Footer";
+import AIChatbot from "./components/AIChatbot";
 
 export default function App() {
   const [selectedSubject, setSelectedSubject] = useState<string>("");
@@ -66,6 +67,9 @@ export default function App() {
 
       {/* 12. Corporate Footer & Office Geographies */}
       <Footer />
+
+      {/* 13. Gemini AI Engineering Assistant (Chat, Google Search & Google Maps Grounding) */}
+      <AIChatbot onContactClick={scrollToContact} />
     </div>
   );
 }
